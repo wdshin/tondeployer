@@ -1,0 +1,25 @@
+#include "imports/stdlib.fc";
+
+const int commision = 50;
+
+() recv_internal(int ton_sent, cell msg_full, slice msg_payload) impure {
+
+    if(msg_payload.slice_data_empty?())
+    {
+        return ();
+    }
+
+    var streamerAddress = msg_payload~load_msg_addr();
+
+    cell msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(streamerAddress)
+        .store_coins(ton_sent * commision / 100) ;; same as tons / 100 * commision, but less fraction loss
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_uint(0, 32) ;; op = 0 for simple comment transfer
+        .store_slice("donation")
+    .end_cell();
+
+    send_raw_message(msg, 3);
+
+}
