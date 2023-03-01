@@ -1,25 +1,69 @@
 #include "imports/stdlib.fc";
 
-const int commision = 50;
+const slice our_wallet = "EQDZel0-T5Qlj3r6uY2s3IESRLgVPaD0A5kcyECxx3RXNChL"a;  
+const slice donation_tag = "donation";
+const slice withdraw_tag = "withdraw";
 
-() recv_internal(int ton_sent, cell msg_full, slice msg_payload) impure {
+const int op::withdraw = 888444;         ;; 214470871 = withdraw
+const int op::comment = 0;                  ;; 0 = comment
+const int commision_percent = 6;            ;; 6%
+const int min_amount = 100000000;           ;; 0.1 TON
 
-    if(msg_payload.slice_data_empty?())
+() recv_internal(int ton_sent, cell msg_full, slice payload) impure {
+
+    if(ton_sent < min_amount)           ;; ignore nishebrod's messages
     {
         return ();
     }
 
-    var streamerAddress = msg_payload~load_msg_addr();
+    if(payload.slice_empty?())          ;; ignore empty messages
+    {
+        return ();
+    }
 
-    cell msg = begin_cell()
-        .store_uint(0x18, 6)
-        .store_slice(streamerAddress)
-        .store_coins(ton_sent * commision / 100) ;; same as tons / 100 * commision, but less fraction loss
-        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-        .store_uint(0, 32) ;; op = 0 for simple comment transfer
-        .store_slice("donation")
-    .end_cell();
+    var cs = msg_full.begin_parse();
+    var flags = cs~load_uint(4);
+    if (flags & 1) {                    ;; ignore bounced messages
+        
+        return ();
+    }
 
-    send_raw_message(msg, 3);
+    int op = payload~load_uint(32);     ;; get [op]eration code
+
+    if(op == op::comment)               ;; if it's simple comment
+    {
+        var streamerAddress = payload~load_msg_addr();
+        cell msg = begin_cell()
+            .store_uint(0x18, 6)
+            .store_slice(streamerAddress)
+            .store_coins(ton_sent * commision_percent / 100) ;; same as (tons / 100 * commision), but less fraction loss
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(0, 32)          ;; op = 0 for simple comment transfer
+            .store_slice(donation_tag)
+        .end_cell();
+
+        send_raw_message(msg, 3);
+    }
+
+    if(op == op::withdraw)
+    {
+        slice sender_address = cs~load_msg_addr();
+        if(equal_slice_bits(sender_address, our_wallet))
+        {
+            [int balance, _] = get_balance();
+            throw_if(808, balance <= min_amount * 2);    ;;min withdraw is  0.1 TON
+
+            cell msg = begin_cell()
+                .store_uint(0x18, 6)
+                .store_slice(sender_address)
+                .store_coins(balance - min_amount) ;; withdraw (balance - 0.1) TON
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_uint(0, 32)          ;; op = 0 for simple comment transfer
+                .store_slice(withdraw_tag)
+            .end_cell();
+
+            send_raw_message(msg, 3);
+        }
+    }
 
 }

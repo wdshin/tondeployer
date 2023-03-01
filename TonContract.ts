@@ -9,25 +9,24 @@ export default class TonContract implements Contract {
     const data = beginCell()
       .storeUint(initialCounterValue, 64)
       .endCell();
-    const workchain = 0; // deploy to workchain 0
+    const workchain = 0
     const address = contractAddress(workchain, { code, data });
     return new TonContract(address, { code, data });
   }
 
   async sendDeploy(provider: ContractProvider, via: Sender) {
     await provider.internal(via, {
-      value: "0.01", // send 0.01 TON to contract for rent
+      value: "0.01", // send 0.01 TON for deploy
       bounce: false  // dont bounce, it's contract init
     });
   }
 
-  async cashoutTons(provider: ContractProvider, via: Sender) {
+  async sendWithdraw(provider: ContractProvider, via: Sender) {
     const messageBody = beginCell()
-      .storeUint(322, 32) // op 322 = cashout
-      .storeUint(0, 64) // query id
+      .storeUint(888444, 32) // op #888444 = withdraw
       .endCell();
     await provider.internal(via, {
-      value: "0.002", // send 0.002 TON for gas
+      value: "0.1",
       body: messageBody
     });
   }

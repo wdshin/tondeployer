@@ -4,7 +4,12 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+lerna-debug.log
+
+
+# TON Stuff related
+mnemonics/
+cells/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -67,6 +72,7 @@ typings/
 
 # Yarn Integrity file
 .yarn-integrity
+yarn.lock
 
 # dotenv environment variables file
 .env
@@ -103,7 +109,6 @@ dist-ssr
 
 # TernJS port file
 .tern-port
-
 *.local
 
 # Editor directories and files
