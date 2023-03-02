@@ -64,6 +64,8 @@ async function main() {
 		currentSeqno = await walletContract.getSeqno();
 	}
 	console.log("Funds successfully withdrawed 🤑");
+
+	rl.close();
 }
 
 main();
