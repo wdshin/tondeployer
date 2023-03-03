@@ -1,20 +1,17 @@
 #include "imports/stdlib.fc";
 
-const slice our_wallet = "EQDZel0-T5Qlj3r6uY2s3IESRLgVPaD0A5kcyECxx3RXNChL"a;  
-const slice donation_tag = "donation";
-const slice withdraw_tag = "withdraw";
+const slice our_wallet = "EQDZel0-T5Qlj3r6uY2s3IESRLgVPaD0A5kcyECxx3RXNChL"a;
 
-const int op::withdraw = 888444;         ;; 214470871 = withdraw
-const int op::comment = 0;                  ;; 0 = comment
-const int commision_percent = 6;            ;; 6%
-const int min_amount = 100000000;           ;; 0.1 TON
+const slice donation_tag = "donation";  ;; message for streamer's share
+const slice withdraw_tag = "withdraw";  ;; message for withdraw
+
+const int op::withdraw = 888444;         ;; 888444 = withdraw
+const int op::comment = 0;               ;; 0 = comment
+
+const int commision_percent = 100 - 6;   ;; 6%
+const int min_amount = 100000000;        ;; 0.1 TON, all messages with amount beyond this values are ingored
 
 () recv_internal(int ton_sent, cell msg_full, slice payload) impure {
-
-    if(ton_sent < min_amount)           ;; ignore nishebrod's messages
-    {
-        return ();
-    }
 
     if(payload.slice_empty?())          ;; ignore empty messages
     {
@@ -23,15 +20,20 @@ const int min_amount = 100000000;           ;; 0.1 TON
 
     var cs = msg_full.begin_parse();
     var flags = cs~load_uint(4);
-    if (flags & 1) {                    ;; ignore bounced messages
-        
+    if (flags & 1)                      ;; ignore bounced messages
+    {
         return ();
     }
 
     int op = payload~load_uint(32);     ;; get [op]eration code
 
-    if(op == op::comment)               ;; if it's simple comment
+    if(op == op::comment)               ;; it's a donation !!! need to change operation, since 0 op is defined for comment
     {
+        if(ton_sent < min_amount)       ;; ignore low valued donations
+        {
+            return ();
+        }
+
         var streamerAddress = payload~load_msg_addr();
         cell msg = begin_cell()
             .store_uint(0x18, 6)
@@ -51,7 +53,7 @@ const int min_amount = 100000000;           ;; 0.1 TON
         if(equal_slice_bits(sender_address, our_wallet))
         {
             [int balance, _] = get_balance();
-            throw_if(808, balance <= min_amount * 2);    ;;min withdraw is  0.1 TON
+            throw_if(808, balance <= min_amount);    ;; withdraw limited to 0.1 TON, to keep contract alive
 
             cell msg = begin_cell()
                 .store_uint(0x18, 6)
